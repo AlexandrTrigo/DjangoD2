@@ -1,0 +1,140 @@
+from news.models import User
+from news.models import Author, Post, Comment, Category
+
+User.objects.create_user("petrov") 		#создаем первого пользователя
+User.objects.create_user("ivanov") 	#создаем второго пользователя
+
+#создаем двух новых авторов на основе созданных пользователей 
+#первый способ создания, через уникальный ключ
+
+author_1 = Author.objects.create(user=User.objects.get(pk=1))
+author_2 = Author.objects.create(user=User.objects.get(pk=2))
+
+#второй способ создания, через имя пользователя
+
+author_1 = Author.objects.create(user=User.objects.get(username="petrov"))
+author_2 = Author.objects.create(user=User.objects.get(username="ivanov"))
+
+
+#создаем категории новостей
+
+main_topic = Category.objects.create(name="главные новости")
+politics = Category.objects.create(name="политика")
+sport = Category.objects.create(name="новости спорта")
+art = Category.objects.create(name="новости искусства")
+
+
+#создаем одну новость
+
+graindeal_news = Post.objects.create(author=author_1, type="n", header='Эрдоган заявил, что зерновая сделка продлевается', text='Соглашение по зерновой сделке, заключенное 22 июля 2022 года, истекало завтра. Решено продлить соглашение по черноморской зерновой инициативе на два месяца при поддержке наших российских друзей и вкладе украинских друзей, заявил он в обращении к депутатам правящей Партии справедливости и развития.')
+ 
+graindeal_news.category.set([main_topic])
+
+
+#создаем две статьи
+
+article_art = Post.objects.create(author=author_1, header='Концерты "Ночных снайперов" отменили в Узбекистане', text='Концерты группы "Ночные снайперы", запланированные на май, отменили в трех городах Узбекистана. Выступления должны были состояться в Ташкенте, Самарканде и Бухаре, сообщает в своем Telegram-канале билетный оператор iticket.uz.')
+
+article_sports = Post.objects.create(author=author_2, header='Финальный матч Кубка России пройдет на стадионе "Лужники"', text='Финальный матч Кубка России по футболу сезона-2022/23, как и планировалось, пройдет на стадионе "Лужники", сообщили РИА Новости в службе коммуникаций Российского футбольного союза (РФС).')
+
+article_art.category.set([art, main_topic])
+article_sports.category.set([sport, politics])
+
+
+#создадим доп пользователей-комментаторов
+
+commentator = User.objects.create_user("commentator123")
+arts_user = User.objects.create_user("artsmaster3000")
+
+
+user_1 = User.objects.get(pk=1)
+user_2 = User.objects.get(pk=2)
+
+
+#комментируем посты
+
+comment_1 = Comment.objects.create(post=article_art, user=arts_user, text="Жаль, а так хотелось посетить концерт")
+comment_2 = Comment.objects.create(post=article_art, user=user_2, text="Ну и ладно,всё равно я не люблю эту группу")
+comment_3 = Comment.objects.create(post=article_sports, user=commentator, text="Спартак-Чемпион!!!")
+comment_4 = Comment.objects.create(post=graindeal_news, user=user_2, text="Зерно это хорошо...")
+comment_5 = Comment.objects.create(post=graindeal_news, user=arts_user, text="Хорошие новости.")
+
+
+#серия лайков-дизлайков
+
+graindeal_news.like()
+graindeal_news.like()
+graindeal_news.dislike()
+
+article_arts.like()
+article_arts.like()
+article_arts.like()
+article_arts.like()
+article_arts.like()
+
+article_sports.like()
+article_sports.like()
+article_sports.like()
+article_sports.like()
+article_sports.like()
+article_sports.like()
+article_sports.dislike()
+article_sports.like()
+article_sports.like()
+article_sports.dislike()
+article_sports.dislike()
+article_sports.dislike()
+
+comment_1.like()
+comment_1.like()
+comment_1.like()
+comment_1.dislike()
+
+comment_2.dislike()
+comment_2.dislike()
+
+comment_3.like()
+comment_3.like()
+comment_3.like()
+comment_3.like()
+
+comment_4.like()
+comment_4.like()
+comment_4.dislike()
+comment_4.dislike()
+
+comment_5.like()
+comment_5.like()
+comment_5.like()
+comment_5.like()
+comment_5.like()
+comment_5.dislike()
+comment_5.like()
+
+
+# обновляем рейтинги авторов
+
+author_1.update_rating()
+author_2.update_rating()
+
+
+#выведем юзернейм и рейтинг лучшего автора
+
+rank = Author.objects.all().order_by("-rank").values("rank")[0]["rank"]
+username = User.objects.get(pk=Author.objects.all().order_by("-rank").values("user")[0]["user"])
+print(username, rank)
+
+
+#данные по лучшей статье
+
+best = Post.objects.all().order_by("-_rank").values("created_datetime", "_rank", "header", "author", "id")[0]
+post = Post.objects.get(pk=best["id"])
+preview = post.preview()
+author_username = Author.objects.get(pk=best["author"]).user
+
+print(best["created_datetime"], author_username,  best["_rank"], best["header"], preview)
+
+
+#выведем комментарии к лучшей статье
+
+Comment.objects.filter(post=post.id).values("created_datetime", "user", "_rank", "text")
